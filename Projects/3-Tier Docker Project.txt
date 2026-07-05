@@ -1,0 +1,215 @@
+Step I: Create a database.
+
+1. Create an instance. Connect to it. Install Docker (yum install docker -y, systemctl enable --now docker)
+2. Copy Tomcat folder containing required .war and .jar files from local machine to the EC2 instance (scp -i <private_key> -r Tomcat ec2-user@<public-ip>:/home/ec2-user).
+3. Open all the required ports in Security Group like 80, 8080 and 3306.
+4. Create a docker file for database (vi db_file)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+FROM mysql:latest
+
+ENV MYSQL_ROOT_PASSWORD=12345
+ENV MYSQL_DATABASE=studentapp    (A database named 'studentapp' will be created inside the container once we apply this image.)
+ENV MYSQL_USER=shantanu                 ( We can skip these 2 variables
+ENV MYSQL_PASSWORD=11111               because default user is 'root'.)
+
+EXPOSE 3306
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                            OR  
+Create a database container directly with mysql image (docker run -d --name DATABASE -p 3306:3306 -e MYSQL_ROOT_PASSWORD=12345 -e MYSQL_DATABASE=studentapp mysql:8.0)
+5. Apply the dockerfile (docker build -t dbimage:v1 -f db_file .). Use (docker images) to check the created image.
+6. Create a container from the image (docker run -d --name DATABASE -p 3306:3306 dbimge:v1)
+7. Connect to the container. (docker exec -it DATABASE /bin/bash)
+8. Login to mysql (mysql -u root -p, enter, 12345)
+9. Create a table named 'students'using sql queries in studentapp database(show databases; use studentapp;)
+
+CREATE TABLE if not exists students(student_id INT NOT NULL AUTO_INCREMENT,
+student_name VARCHAR(100) NOT NULL,
+student_addr VARCHAR(100) NOT NULL,
+student_age VARCHAR(3) NOT NULL,
+student_qual VARCHAR(20) NOT NULL,
+student_percent VARCHAR(10) NOT NULL,
+student_year_passed VARCHAR(10) NOT NULL,
+PRIMARY KEY (student_id)
+);
+
+Step II: Create backend.
+
+1. Creating a backend docker file i.e. vi backend_file
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+FROM amazonlinux:latest
+
+LABEL desc="BACKEND"
+
+RUN yum install java-11 -y
+
+ADD https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.85/bin/apache-tomcat-9.0.85.tar.gz /opt
+
+COPY Tomcat/student.war /opt/apache-tomcat-9.0.85/webapps
+
+COPY Tomcat/mysql-connector.jar /opt/apache-tomcat-9.0.85/lib
+
+EXPOSE 8080
+
+CMD ["/opt/apache-tomcat-9.0.85/bin/catalina.sh" , "run"]
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2. Apply the dockerfile (docker build -t backend:v1 -f backend_file .)
+3. Create a container from the image (docker run -d --name BACKEND -p 8080:8080 backend:v1)
+4. Connect to the container (docker exec -it BACKEND /bin/bash.) using cmd.
+5. Install vi (yum install vi -y). vi /opt/apache-tomcat-9.0.85/conf/context.xml
+Note: For Database <-------> Backend Connection: Enter username, password, url=jdbc:mysql://<Public_IP_of_the_Instance>:<db_port_number>/<db_name> in context.xml file in the backend manually.
+
+<Context>
+    <Resource name="jdbc/TestDB" auth="Container" type="javax.sql.DataSource"
+           maxTotal="100" maxIdle="30" maxWaitMillis="10000"
+           username="root" password="12345" driverClassName="com.mysql.jdbc.Driver"
+           url="jdbc:mysql://<Public_IP_of_the_Instance>:3306/studentapp"/>
+</Context>
+
+6. Browse "http://<IP_of_the_Instance>:8080/student" to verify if the backend is working. Enter the data in all the fields of the students page and save it. The saved data must show up in the database.
+Go to the database container and run (select * from students;) to verify if backend and db are connected successfully.
+
+Step III: Create frontend
+
+1. Creating a frontend docker file i.e. vi frontend_file
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+FROM amazonlinux:latest
+
+LABEL desc="FRONTEND"
+
+RUN yum install nginx -y
+
+#    Note: For Frontend <-------> Backend Connection: Edit <a href> tag at 2 places in the StudentHome.html.
+#    <a href="http://<IP_of_the_Instance>:8080/student/">Registration</a>           
+#    <button><a href="http://<IP_of_the_Instance>:8080/student/">Go to the registration page</a></button>
+
+RUN cat <<EOF > /usr/share/nginx/html/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            height: 100vh;
+        }
+        .body-img img {
+            width: 500px;
+        }
+        a {
+            font-size: 30px;
+            text-decoration: none;
+            color: white;
+        }
+        .nav a:hover {
+            color: black;
+        }
+        .header {
+            height: 60px;
+            background-color: rgb(162, 162, 237);
+            padding-left: 20px;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+        .nav{
+            height: 60px;
+            width: 600px;
+            padding: 5px;
+        }
+        .nav a {
+            text-decoration: none;
+            color: white;
+            cursor: pointer;
+            margin-left: 40px;
+        }
+        .footer{
+            height: 60px;
+            background-color: grey;
+            position: relative;
+            bottom: 0;
+            padding: 10px;
+            color: white;
+        }
+        button{
+            border-radius: 20px;
+            padding: 10px;
+            background-color: blue;
+            color: white;
+        }
+        button:hover {
+            background-color: rgb(4, 4, 73);
+            box-shadow: 0px 0px 5px 5px black;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXAm-zUxdL7GCxMFO9PLNguDisaswkb00fjg&s" width="120" />
+        <div class="nav">
+            <a href="#">Home</a>
+            <a href="http://<IP_of_the_Instance>:8080/student/">Registration</a>
+            <a href="#">About</a>
+        </div>
+    </div>
+    <br/><br/>
+    <center>
+        <h1>Welcome to Student Management Site</h1>
+        <br /><br />
+        <div class="body-img">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2xQcwKitRgXfqdi34DYlocPSEXD2G2zZipg&s" />
+        </div>
+        <br /><br /><br /><br /><br /><br />
+        <button><a href="http://<IP_of_the_Instance>:8080/student/">Go to the registration page</a></button>
+        <br/><br/><br/>
+    </center>
+</body>
+</html>
+EOF
+
+EXPOSE 80
+
+CMD ["/usr/sbin/nginx" , "-g" , "daemon off;"]
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2. Apply the dockerfile (docker build -t frontend:v1 -f frontend_file .)
+3. Create a container from the image (docker run -d --name FRONTEND -p 80:80 frontend:v1)
+
+Working of the project:
+===================
+
+1. Hit Instance IP - It will take you to the StudentHome page. (FRONTEND)
+2. Click on Registration button. It will take you to the students page. (BACKEND)
+3. Enter data on the students page and save it.
+4. Go to the database container and verify using (select * from students;). The data entered on the students page must show up here in the database.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
