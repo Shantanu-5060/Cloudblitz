@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+  labels:
+    app: dev
+spec:
+  containers:
+    - name: my-con
+      image: tomcat
+      ports:
+        - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: dev
+  type: NodePort
+  ports:
+    - targetPort: 8080
+      port: 80
+      protocol: TCP
+
+==================
+We can access the application by using:
+1. <Pod_IP>:<ContainerPort>
+2. <Cluster_IP>
+3. <Node_IP>:<NodePort>
+4. External LB Endpoint that gets created on the AWS console when type: LoadBalancer is used.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

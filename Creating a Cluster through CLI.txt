@@ -1,0 +1,29 @@
+aws configure
+
+1 AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
+2 AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+3 Default region name [None]: ap-south-1
+4 Default output format [None]: json
+
+cat /root/.aws/credentials    = kye, secret kye
+cat /root/.aws/config         = region
+
+
+#kubectl {install}
+
+1 curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.32.0/2024-12-20/bin/linux/amd64/kubectl
+2 chmod +x ./kubectl
+3 sudo mv ./kubectl /usr/local/bin
+4 kubectl version --client
+
+#eksctl {install}
+1  curl -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz
+2 sudo mv eksctl /usr/local/bin
+3 eksctl version
+
+Cluster creat
+1 eksctl create cluster --name my-cluster --region ca-central-1 --nodes 1
+
+delete cluster
+1 eksctl delete cluster --name <your-cluster-name> --region <your-region>
+eksctl delete cluster --name my-cluster --region us-east-1

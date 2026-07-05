@@ -1,0 +1,312 @@
+# Namespace 
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloud
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Pod
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+  namespace: cloud
+  labels:
+    app: devops
+spec:
+  containers:
+    - name: con1
+      image: nginx
+      ports:
+        - containerPort: 80
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Service 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  namespace: cloud
+spec:
+  ports:
+    - targetPort: 80
+      port: 80
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: devops
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Replication Controller
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: my-rc
+spec:
+  template:
+    metadata:
+      name: pod11
+      labels:
+        app: devops
+    spec:
+      containers:
+        - name: rcon1
+          image: nginx
+          ports:
+            - containerPort: 80
+  replicas: 3
+  selector:
+      app: devops
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Replica Set
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: prod
+  template:
+    metadata:
+      name: my-pod
+      labels:
+        app: prod
+    spec:
+      containers:
+        - name: c1
+          image: nginx
+          ports:
+            - containerPort: 80
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: prod
+  template:
+    metadata:
+      name: my-pod
+      labels:
+        app: prod
+    spec:
+      containers:
+        - name: my-con
+          image: nginx
+          ports:
+            - containerPort: 80
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Stateful Set
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-sts
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      name: my-sts-pod
+      labels:
+        app: test
+    spec:
+      containers:
+        - name: my-con
+          image: mysql
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "cloud"
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Daemon Set
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-daemon
+spec:
+  selector:
+    matchLabels:
+      app: QA
+  template:
+    metadata:
+      name: my-pod
+      labels:
+        app: QA
+    spec:
+      containers:
+        - name: my-con
+          image: nginx
+          ports:
+            - containerPort: 80
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# PersistentVolume
+ 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-vol
+spec:
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+      - ReadWriteOnce
+  storageClassName: manual
+  local:
+    path: /mnt/silo
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+           - key: kubernetes.io/hostname       or        - {key: kubernetes.io/hostname,operator: In, values: ["controlplane"]}
+             operator: In
+             values:
+               - node1
+
+----
+
+Persistent Volume Claim
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-claim
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+
+---
+
+Pod
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+    - name: my-con
+      image: nginx
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: pv-vol
+          mountPath: /usr/share/nginx/html
+  volumes:
+    - name: pv-vol
+      persistentVolumeClaim:
+        claimName: pv-claim
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# HPA
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: my-hpa
+spec:
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 20
+  maxReplicas: 5
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-deploy
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: prod
+  template:
+    metadata:
+      name: my-pod
+      labels:
+        app: prod
+    spec:
+      containers:
+        - name: my-con
+          image: nginx
+          ports:
+            - containerPort: 80
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Ingress
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cloth-app-pod
+  labels:
+    app: cloth-app
+spec:
+  containers:
+    - name: con-1
+      image: nginx
+      ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloth-app-service
+  labels:
+    app: cloth-app
+spec:
+  selector:
+     app: cloth-app
+  ports:
+    - targetPort: 80
+       port: 80
+       protocol: TCP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
