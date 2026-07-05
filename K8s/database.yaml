@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-sts
+spec:
+  serviceName: db-service 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: db-con
+          image: mysql
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: con-vol
+              mountPath: /var/lib/mysql
+      
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: pass
+            - name: MYSQL_DATABASE
+              value: studentapp
+  volumeClaimTemplates:
+    - metadata:
+        name: con-vol
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: manual
+        resources:
+          requests:
+            storage: 5Gi
+
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+data:
+  pass: "MTIzNDU="
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol
+spec:
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+      - ReadWriteOnce
+  storageClassName: manual
+  local:
+    path: /mnt
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+           - key: kubernetes.io/hostname
+             operator: In
+             values:
+               - ip-192-168-77-196.ap-northeast-1.compute.internal
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+spec:
+  selector:
+    app: db
+  ports:
+    - targetPort: 3306
+      port: 3306
+      protocol: TCP
+  clusterIP: None
